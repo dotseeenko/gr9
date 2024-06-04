@@ -3,15 +3,16 @@ package http
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/BohdanBoriak/boilerplate-go-back/config"
 	"github.com/BohdanBoriak/boilerplate-go-back/config/container"
 	"github.com/BohdanBoriak/boilerplate-go-back/internal/infra/http/controllers"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -49,6 +50,7 @@ func Router(cont container.Container) http.Handler {
 				apiRouter.Use(cont.AuthMw)
 
 				UserRouter(apiRouter, cont.UserController)
+				TaskRouter(apiRouter, cont.TaskController)
 				apiRouter.Handle("/*", NotFoundJSON())
 			})
 		})
@@ -79,6 +81,31 @@ func AuthRouter(r chi.Router, ac controllers.AuthController, amw func(http.Handl
 		apiRouter.With(amw).Post(
 			"/logout",
 			ac.Logout(),
+		)
+	})
+}
+
+func TaskRouter(r chi.Router, tc controllers.TaskController) {
+	r.Route("/tasks", func(apiRouter chi.Router) {
+		apiRouter.Post(
+			"/",
+			tc.Save(),
+		)
+		apiRouter.Get(
+			"/",
+			tc.GetForUser(),
+		)
+		apiRouter.Get(
+			"/{id}",      // Маршрут для отримання завдання за його ID.
+			tc.GetByID(), // Функція-обробник для GET-запитів на цей маршрут.
+		)
+		apiRouter.Delete(
+			"/{id}",         // Маршрут для видалення завдання за його ID.
+			tc.DeleteByID(), // Функція-обробник для DELETE-запитів на цей маршрут.
+		)
+		apiRouter.Put(
+			"/{id}/status",    // Маршрут для оновлення статусу завдання за його ID.
+			tc.UpdateStatus(), // Функція-обробник для PUT-запитів на цей маршрут.
 		)
 	})
 }
